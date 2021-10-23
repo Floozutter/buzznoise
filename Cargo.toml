@@ -1,0 +1,13 @@
+[package]
+name = "buzznoise"
+version = "0.1.0"
+authors = ["Floozutter <me@floozutter.site>"]
+edition = "2018"
+
+[dependencies]
+cpal = "0.13"
+buttplug = "4.0"
+clap = "2.33"
+tokio = { version = "1.7", features = ["full"] }
+futures = "0.3.15"
+futures-timer = "3.0"
