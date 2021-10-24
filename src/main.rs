@@ -11,7 +11,66 @@ use tokio::io::{self, AsyncBufReadExt, BufReader};
 use futures::{StreamExt, Stream};
 use futures_timer::Delay;
 use std::sync::{Arc, Mutex};
-use std::error::Error;
+use std::{error::Error, io::Write};
+
+fn prompt_host() -> Result<cpal::Host, Box<dyn Error>> {
+    let mut hosts = cpal::available_hosts();
+    let id: Result<cpal::HostId, Box<dyn Error>> = match hosts.len() {
+        0 => Err("no available host found".into()),
+        1 => {
+            println!(
+                "selecting only available host: {}",
+                hosts[0].name()
+            );
+            Ok(hosts.pop().unwrap())
+        },
+        _ => {
+            println!("available hosts:");
+            for (i, h) in hosts.iter().enumerate() {
+                println!("{}: {}", i, h.name());
+            }
+            print!("select host: ");
+            std::io::stdout().flush()?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            Ok(
+                hosts.into_iter().nth(
+                    input.trim().parse::<usize>()?
+                ).ok_or("invalid host selected")?
+            )
+        },
+    };
+    Ok(cpal::host_from_id(id?)?)
+}
+
+fn prompt_device(host: &cpal::Host) -> Result<cpal::Device, Box<dyn Error>> {
+    let mut devices = host.input_devices()?.collect::<Vec<cpal::Device>>();
+    match devices.len() {
+        0 => Err("no available audio input device found".into()),
+        1 => {
+            println!(
+                "selecting only available audio input device: {}",
+                devices[0].name()?
+            );
+            Ok(devices.pop().unwrap())
+        },
+        _ => {
+            println!("available audio input devices:");
+            for (i, d) in devices.iter().enumerate() {
+                println!("{}: {}", i, d.name()?);
+            }
+            print!("select audio input device: ");
+            std::io::stdout().flush()?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            Ok(
+                devices.into_iter().nth(
+                    input.trim().parse::<usize>()?
+                ).ok_or("invalid input device selected")?
+            )
+        },
+    }
+}
 
 fn handle_input_data(data: &[f32], lb: &Arc<Mutex<loudnessbuffer::LoudnessBuffer>>) {
     (*lb.lock().unwrap()).extend(data.iter().copied());
@@ -86,8 +145,8 @@ fn main() {
     // connect audio stream to Buttplug
     let ending: Result<(), Box<dyn Error>> = (|| -> Result<(), Box<dyn Error>> {
         // get audio stream
-        let host = cpal::default_host();
-        let device = host.default_input_device().unwrap();
+        let host = prompt_host()?;
+        let device = prompt_device(&host)?;
         let config = device.default_input_config()?;
         let width = 0.05;  // seconds
         let capacity = (config.sample_rate().0 as f32 * width) as usize;
