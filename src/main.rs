@@ -1,3 +1,4 @@
+mod loudnessbuffer;
 use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 use buttplug::{
     client::{
@@ -12,9 +13,8 @@ use futures_timer::Delay;
 use std::sync::{Arc, Mutex};
 use std::error::Error;
 
-fn handle_input_data(data: &[f32], average: &Arc<Mutex<f32>>) {
-    let mut average = average.lock().unwrap();
-    *average = data.iter().map(|x| x.abs()).sum::<f32>() / data.len() as f32;
+fn handle_input_data(data: &[f32], lb: &Arc<Mutex<loudnessbuffer::LoudnessBuffer>>) {
+    (*lb.lock().unwrap()).extend(data.iter().copied());
 }
 
 async fn handle_scanning(mut event_stream: impl Stream<Item = ButtplugClientEvent> + Unpin) {
@@ -39,14 +39,14 @@ async fn handle_scanning(mut event_stream: impl Stream<Item = ButtplugClientEven
     }
 }
 
-async fn run(average: Arc<Mutex<f32>>) -> Result<(), Box<dyn Error>> {
+async fn run(lb: Arc<Mutex<loudnessbuffer::LoudnessBuffer>>) -> Result<(), Box<dyn Error>> {
     // connect Buttplug devices
     let client = ButtplugClient::new("buzznoise buttplug client");
     let event_stream = client.event_stream();
     client.connect_in_process(&ButtplugServerOptions::default()).await?;
     client.start_scanning().await?;
     let scan_handler = tokio::spawn(handle_scanning(event_stream));
-    println!("\nscanning for devices! press enter at any point to stop scanning and connect MIDI.");
+    println!("\nscanning for devices! press enter at any point to stop scanning and start listening to audio input.");
     BufReader::new(io::stdin()).lines().next_line().await?;
     client.stop_scanning().await?;
     scan_handler.await?;
@@ -54,7 +54,7 @@ async fn run(average: Arc<Mutex<f32>>) -> Result<(), Box<dyn Error>> {
     let devices = client.devices();
     tokio::spawn(async move {
         loop {
-            let power = *average.lock().unwrap();
+            let power = 2.0 * (*lb.lock().unwrap()).rms();
             let speed = power.min(1.0) as f64;
             println!(
                 "power: {:.5}  |  vibration speed: {:.5}  [{:<5}]",
@@ -85,8 +85,8 @@ fn main() {
         .get_matches();
     // connect audio stream to Buttplug
     let ending: Result<(), Box<dyn Error>> = (|| -> Result<(), Box<dyn Error>> {
-        let average_a = Arc::new(Mutex::new(0.0));
-        let average_b = average_a.clone();
+        let lb_a = Arc::new(Mutex::new(loudnessbuffer::LoudnessBuffer::new(50)));
+        let lb_b = lb_a.clone();
         // get audio stream
         let host = cpal::default_host();
         let device = host.default_input_device().unwrap();
@@ -95,7 +95,7 @@ fn main() {
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
                 &config.into(),
-                move |data, _: &_| handle_input_data(data, &average_b),
+                move |data, _: &_| handle_input_data(data, &lb_b),
                 err_fn
             )?,
             _ => todo!(),
@@ -105,7 +105,7 @@ fn main() {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?;
-        runtime.block_on(run(average_a))?;
+        runtime.block_on(run(lb_a))?;
         Ok(())
     })();
     // say goodbye
