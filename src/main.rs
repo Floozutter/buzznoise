@@ -85,12 +85,14 @@ fn main() {
         .get_matches();
     // connect audio stream to Buttplug
     let ending: Result<(), Box<dyn Error>> = (|| -> Result<(), Box<dyn Error>> {
-        let lb_a = Arc::new(Mutex::new(loudnessbuffer::LoudnessBuffer::new(50)));
-        let lb_b = lb_a.clone();
         // get audio stream
         let host = cpal::default_host();
         let device = host.default_input_device().unwrap();
         let config = device.default_input_config()?;
+        let width = 0.05;  // seconds
+        let capacity = (config.sample_rate().0 as f32 * width) as usize;
+        let lb_a = Arc::new(Mutex::new(loudnessbuffer::LoudnessBuffer::new(capacity)));
+        let lb_b = lb_a.clone();
         let err_fn = move |err| { eprintln!("an error occurred on stream: {}", err); };
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
