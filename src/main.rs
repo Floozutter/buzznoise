@@ -114,7 +114,7 @@ async fn run(lb: Arc<Mutex<loudnessbuffer::LoudnessBuffer>>) -> Result<(), Box<d
     tokio::spawn(async move {
         loop {
             let power = 3.0 * (*lb.lock().unwrap()).rms();
-            let speed = if power < 0.01 { 0f64 } else { power.min(1.0) as f64 };
+            let speed = if power < 0.01 { 0_f64 } else { power.min(1.0) as f64 };
             println!(
                 "power: {:.5}  |  vibration speed: {:.5}  [{:<5}]",
                 power, speed, "=".repeat((speed * 5.0) as usize)
