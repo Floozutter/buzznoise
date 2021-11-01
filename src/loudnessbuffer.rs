@@ -24,7 +24,11 @@ impl LoudnessBuffer {
     }
 
     pub fn rms(&self) -> f32 {
-        (self.sum / self.squares.len() as f32).sqrt()
+        if self.squares.len() == 0 {
+            0.0
+        } else {
+            (self.sum / self.squares.len() as f32).sqrt()
+        }
     }
 }
 
