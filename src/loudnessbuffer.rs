@@ -35,3 +35,17 @@ impl Extend<f32> for LoudnessBuffer {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zeros() {
+        let mut lb = LoudnessBuffer::new(64);
+        assert_eq!(lb.rms(), 0.0);
+        lb.extend(std::iter::repeat(0.0).take(100));
+        assert_eq!(lb.rms(), 0.0);
+    }
+}
