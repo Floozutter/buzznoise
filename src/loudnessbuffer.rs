@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn silence_after_noise() {
         let mut lb = LoudnessBuffer::new(64);
-        lb.extend((0_i16..128).map(|x| f32::from(x).sin()));
+        lb.extend((0_u16..=10000).map(|x| f32::from(x).sin()));
         assert!(lb.rms() > 0.0);
         lb.extend(std::iter::repeat(0.0).take(64));
         assert_eq!(lb.rms(), 0.0);
