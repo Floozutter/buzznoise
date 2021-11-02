@@ -18,7 +18,7 @@ impl LoudnessBuffer {
         self.squares.push_back(square);
         self.sum += square;
         while self.squares.len() > self.capacity {
-            self.sum -= self.squares.pop_front().unwrap_or_default();
+            self.sum -= self.squares.pop_front().expect("empty buffer exceeded capacity")
         }
         self.sum = self.sum.max(0.0);
     }
