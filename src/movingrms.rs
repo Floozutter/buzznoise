@@ -1,4 +1,4 @@
 pub trait MovingRMS<I, O> {
     fn rms(&self) -> O;
-    fn push(&self, value: I);
+    fn push(&mut self, value: I);
 }
