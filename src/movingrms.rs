@@ -1,4 +1,4 @@
-pub trait MovingRMS {
-    fn rms(&self) -> f32;
-    fn push(&self, value: f32);
+pub trait MovingRMS<I, O> {
+    fn rms(&self) -> O;
+    fn push(&self, value: I);
 }
