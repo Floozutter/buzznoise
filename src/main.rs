@@ -1,4 +1,5 @@
 mod movingrms;
+mod movingrmsexact;
 mod loudnessbuffer;
 use cpal::traits::{HostTrait, DeviceTrait, StreamTrait};
 use buttplug::{
