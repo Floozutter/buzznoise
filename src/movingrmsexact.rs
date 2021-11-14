@@ -42,7 +42,7 @@ mod tests {
     use super::*;
     #[test]
     fn zeros() {
-        let mut exact = MovingRMSExact::new(64);
+        let mut exact = MovingRMSExact::<f64>::new(64);
         assert_eq!(exact.rms(), None);
         for _ in 0..100 {
             exact.push(0.0);
