@@ -40,10 +40,20 @@ impl MovingRMS<f64> for MovingRMSExact<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_rms_is_none() {
+        let mut zero_capped = MovingRMSExact::<f64>::new(0);
+        assert_eq!(zero_capped.rms(), None);
+        for i in 0..100 {
+            zero_capped.push(f64::from(i));
+            assert_eq!(zero_capped.rms(), None);
+        }
+    }
+
     #[test]
     fn zeros() {
         let mut exact = MovingRMSExact::<f64>::new(64);
-        assert_eq!(exact.rms(), None);
         for _ in 0..100 {
             exact.push(0.0);
             assert_eq!(exact.rms(), Some(0.0));
