@@ -22,7 +22,7 @@ impl MovingRMS<f64> for MovingRMSExact<f64> {
             self.squares.pop_front().is_some()
         };
         if pushable {
-            self.squares.push_back(value);
+            self.squares.push_back(value * value);
         }
         debug_assert!(self.squares.len() <= self.capacity, "push exceeded capacity");
     }
